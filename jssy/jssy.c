@@ -166,8 +166,10 @@ long jssy_parse(const char *buffer, size_t bufferSize, jssytok_t *tokens, size_t
                 assure(JSSY_ERROR_INVAL, nowParse <= 2); //if >2 then \u sequnce not finished
                 if (isCounterMode) break;
                 linkBasicElem;
-                if (cur->next->type == JSSY_DICT) // if token is owned by a dict, it is a dict_key instead of a string
+                if (cur->next->type == JSSY_DICT){ // if token is owned by a dict, it is a dict_key instead of a string
                     cur->type = JSSY_DICT_KEY;
+                    cur->next->size--; //decrement JSSY_DICT size, since otherwise we count both JSSY_DICT_KEY and it's value as elements
+                }
                 break;
             case 't':
                 assure(JSSY_ERROR_NOMEM, cur = incTok);
@@ -175,8 +177,13 @@ long jssy_parse(const char *buffer, size_t bufferSize, jssytok_t *tokens, size_t
                 assure(JSSY_ERROR_INVAL, (c = valIncBuf) && c == 'u');
                 assure(JSSY_ERROR_INVAL, (c = valIncBuf) && c == 'e');
                 if (!isCounterMode) { //check if we are in countermode
+#ifdef HAVE_JSSY_BOOL
+                    cur->type = JSSY_BOOL;
+                    cur->boolval = 1;
+#else
                     cur->type = JSSY_PRIMITIVE;
                     cur->numval = 1;
+#endif
                     
                     linkBasicElem;
                 }
@@ -194,8 +201,13 @@ long jssy_parse(const char *buffer, size_t bufferSize, jssytok_t *tokens, size_t
             isfalse:
                 assure(JSSY_ERROR_NOMEM, cur = incTok);
                 if (!isCounterMode) { //check if we are in countermode
+#ifdef HAVE_JSSY_BOOL
+                    cur->type = JSSY_BOOL;
+                    cur->boolval = 0;
+#else
                     cur->type = JSSY_PRIMITIVE;
                     cur->numval = 0;
+#endif
                     
                     linkBasicElem;
                 }
@@ -223,18 +235,18 @@ long jssy_parse(const char *buffer, size_t bufferSize, jssytok_t *tokens, size_t
                         break;
                     }
                 } while ((c = valIncBufUnsafe) && c >= '0' && c <= '9');
-                goto parsefloat;
+                goto parsedouble;
             caseZero:
                 if (!bufferSize){
                     nowParse |= 2;
                     c = '\0';
                 }else
                     c = valIncBuf;
-            parsefloat:
+            parsedouble:
                 cur->type = JSSY_PRIMITIVE;
                 if (c == '.') {
                     assure(JSSY_ERROR_INVAL, (c = valIncBuf) && c >= '0' && c <= '9');
-                    float fhelper = 0.1;
+                    double fhelper = 0.1;
                     do {
                         cur->numval += (c - '0') * fhelper;
                         fhelper /= 10;

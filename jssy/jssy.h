@@ -24,7 +24,10 @@ typedef enum {
     JSSY_DICT_KEY = 2,
     JSSY_ARRAY = 3,
     JSSY_STRING = 4,
-    JSSY_PRIMITIVE = 5
+    JSSY_PRIMITIVE = 5,
+#ifdef HAVE_JSSY_BOOL
+    JSSY_BOOL
+#endif
 } jssytype_t;
 
 enum jssyerr {
@@ -41,7 +44,10 @@ typedef struct jssytok{
     size_t size;
     union{
         char *value;
-        float numval;
+        double numval;
+#ifdef HAVE_JSSY_BOOL
+        unsigned char boolval;
+#endif
     };
     struct jssytok *subval;
     struct jssytok *next;
